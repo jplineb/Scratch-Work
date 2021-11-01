@@ -73,3 +73,47 @@ class ElasticSVC(BaseEstimator, ClassifierMixin):
         final_pred = self.pred_model.predict(X_new)
 
         return(final_pred)
+
+class FeatureSelectandTrain(BaseEstimator, ClassifierMixin):
+
+    def __init__(self, demo_param='demo',
+                 feature_model=None, pred_model=None, max_features=100):
+        self.demo_param = demo_param
+        self.feature_model = feature_model
+        self.max_features = max_features
+        self.pred_model = pred_model
+    
+    def fit(self, X, y):
+        # Check that X and y have correct shape
+        X, y = check_X_y(X,y)
+        # Store the classes seen during fit
+        self.classes_ = unique_labels(y)
+        
+        # Transform data using feature_selc
+        self.selector = SelectFromModel(self.feature_model,
+                                        max_features=self.max_features).fit(X,y)
+        ## Metrics for the feature selection
+        self.features_selected = self.selector.get_feature_names_out()
+        self.num_features = len(self.features_selected)
+        ## Transform X to X_new
+        X_new = self.selector.transform(X)
+        
+        # Fit Prediction model
+        self.pred_model.fit(X_new, y)
+
+        return self
+    
+    def predict(self, X):
+        # Check if fit had been called
+        check_is_fitted(self)
+
+        # Input validation
+        X = check_array(X)
+
+        # Transform data for comparison
+        X_new = self.selector.transform(X)
+
+        # label for sample
+        final_pred = self.pred_model.predict(X_new)
+
+        return(final_pred)
